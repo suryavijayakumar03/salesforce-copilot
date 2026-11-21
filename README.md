@@ -1,0 +1,79 @@
+# ⚡ Salesforce Admin AI Copilot
+
+> An AI-powered assistant for Salesforce Admins — get instant, expert answers to Flows, SOQL, Apex, Validation Rules, Permissions, and more.
+
+## 🚀 What It Does
+
+Ask anything Salesforce-related and get expert-level answers powered by Claude AI:
+- Write Flows, Validation Rules, SOQL queries
+- Fix Apex trigger errors
+- Understand Permission Sets vs Profiles
+- And much more
+
+Responds like a **senior Salesforce Admin with 10+ years of experience** — with working code, step-by-step setup instructions, common variations, and gotchas.
+
+## 🛠️ Tech Stack
+
+- **Frontend:** HTML, CSS, Vanilla JS
+- **Backend:** Node.js + Express
+- **AI:** Anthropic Claude API (claude-sonnet-4-6)
+
+## 📦 Installation
+
+**1. Clone the repo**
+\`\`\`bash
+git clone https://github.com/suryavijayakumar03/salesforce-copilot.git
+cd salesforce-copilot
+\`\`\`
+
+**2. Install dependencies**
+\`\`\`bash
+npm install
+\`\`\`
+
+**3. Create your .env file**
+\`\`\`bash
+cp .env.example .env
+\`\`\`
+Add your Anthropic API key to `.env`:
+\`\`\`
+ANTHROPIC_API_KEY=sk-ant-...your-key-here...
+PORT=3000
+\`\`\`
+
+**4. Start the server**
+\`\`\`bash
+node server.js
+\`\`\`
+
+**5. Open in browser**
+\`\`\`
+http://localhost:3000
+\`\`\`
+
+## 📁 Project Structure
+
+\`\`\`
+salesforce-copilot/
+├── server.js          # Express backend + Claude API
+├── public/
+│   └── index.html     # Frontend UI
+├── .env.example       # Template for environment variables
+├── .gitignore
+└── package.json
+\`\`\`
+
+## 🔒 Security
+
+- Never commit your `.env` file (already in `.gitignore`)
+- API keys are server-side only, never exposed to the browser
+
+## 📄 License
+
+MIT
+
+## 👤 Author
+
+Built by [Surya VJ](https://github.com/suryavijayakumar03) — Salesforce Admin & Business Systems Engineer
+
+*Powered by [Anthropic Claude AI](https://anthropic.com)*
