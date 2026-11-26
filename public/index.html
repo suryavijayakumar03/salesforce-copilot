@@ -251,6 +251,26 @@
       margin-top: 40px;
       padding-bottom: 40px;
     }
+  
+    /* ── Gate tabs and free banner ── */
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    #gate button.tab {
+      width: auto; flex: 1; margin-top: 0; padding: 10px;
+      font-size: 14px; background: #eef3f8; color: #0070d2;
+    }
+    #gate button.tab.active { background: linear-gradient(135deg, #00a1e0, #0070d2); color: white; }
+    #gate .fine { font-size: 12px; color: #888; margin: 12px 0 0; }
+    #gate .fine a { color: #0070d2; }
+    #gate-error { text-align: center; }
+    #gate h2 { margin-bottom: 16px; }
+    #gate button { justify-content: center; }
+    #free-banner {
+      display: none; margin-bottom: 20px; padding: 10px 14px;
+      background: #e8f4fd; border: 1px solid #c5e3f7; border-radius: 10px;
+      font-size: 13px; color: #0070d2;
+    }
+    #free-banner a { color: #0070d2; font-weight: 600; }
+    .answer-content a { color: #0070d2; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -262,20 +282,36 @@
   </div>
 </header>
 
-<!-- PASSWORD GATE -->
+<!-- ACCESS GATE -->
 <div id="gate">
-  <h2>🔐 Access Required</h2>
-  <p>Enter your access password to use the Salesforce Admin AI Copilot.</p>
-  <input type="password" id="pw-input" placeholder="Enter password" onkeydown="if(event.key==='Enter') unlock()" />
-  <button onclick="unlock()">Unlock Access</button>
-  <div id="gate-error">Incorrect password. Please try again.</div>
-  <p id="gate-note">Don't have a password? <a href="https://suryaairevops.gumroad.com/l/sfcopilot" target="_blank" style="color:#0070d2;">Get access here →</a></p>
+  <h2>⚡ Try the Copilot</h2>
+  <div class="tabs">
+    <button type="button" class="tab active" id="tab-free" onclick="showTab('free')">Free sample</button>
+    <button type="button" class="tab" id="tab-paid" onclick="showTab('paid')">I have a password</button>
+  </div>
+
+  <div id="pane-free">
+    <p>Ask up to 3 Salesforce questions free. Enter your email to start.</p>
+    <input type="email" id="email-input" placeholder="you@company.com" autocomplete="email" style="letter-spacing: normal;" onkeydown="if(event.key==='Enter') startFree()" />
+    <button type="button" onclick="startFree()">Start free sample</button>
+    <p class="fine">By continuing you agree to receive occasional emails from me about Salesforce admin tools. Unsubscribe any time.</p>
+  </div>
+
+  <div id="pane-paid" style="display:none;">
+    <p>Enter the access password from your purchase.</p>
+    <input type="password" id="pw-input" placeholder="Enter password" onkeydown="if(event.key==='Enter') unlock()" />
+    <button type="button" onclick="unlock()">Unlock Access</button>
+    <p class="fine">Don't have a password? <a href="https://suryaairevops.gumroad.com/l/sfcopilot" target="_blank" rel="noopener">Get access here →</a></p>
+  </div>
+
+  <div id="gate-error"></div>
 </div>
 
 <!-- MAIN APP -->
 <div id="app">
   <div class="container">
     <div class="card">
+      <div id="free-banner"></div>
       <div class="examples">
         <h3>Try an example</h3>
         <div class="example-chips">
@@ -314,32 +350,126 @@ Example: Write a Flow that automatically sends an email when a Case is closed wi
 </div>
 
 <script>
-  const PASSWORD = "sfadmin2024";
+  const BUY_URL = "https://suryaairevops.gumroad.com/l/sfcopilot";
+  let session = null; // { mode: "free", email } or { mode: "paid", code }
 
-  function unlock() {
-    const entered = document.getElementById("pw-input").value;
-    if (entered === PASSWORD) {
-      document.getElementById("gate").style.display = "none";
-      document.getElementById("app").style.display = "block";
-      sessionStorage.setItem("sf_unlocked", "1");
-    } else {
-      document.getElementById("gate-error").style.display = "block";
+  function esc(text) {
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function showTab(which) {
+    const free = which === "free";
+    document.getElementById("pane-free").style.display = free ? "block" : "none";
+    document.getElementById("pane-paid").style.display = free ? "none" : "block";
+    document.getElementById("tab-free").classList.toggle("active", free);
+    document.getElementById("tab-paid").classList.toggle("active", !free);
+    document.getElementById("gate-error").style.display = "none";
+  }
+
+  function showError(message) {
+    const el = document.getElementById("gate-error");
+    el.textContent = message;
+    el.style.display = "block";
+  }
+
+  function saveSession() {
+    try { sessionStorage.setItem("sf_session", JSON.stringify(session)); } catch (e) {}
+  }
+
+  function clearSession() {
+    session = null;
+    try { sessionStorage.removeItem("sf_session"); } catch (e) {}
+  }
+
+  function updateBanner(remaining) {
+    const banner = document.getElementById("free-banner");
+    if (!session || session.mode !== "free") {
+      banner.style.display = "none";
+      return;
+    }
+    const left = typeof remaining === "number"
+      ? remaining + (remaining === 1 ? " free question left." : " free questions left.")
+      : "Free sample: up to 3 questions.";
+    banner.innerHTML = esc(left) + ' <a href="' + BUY_URL + '" target="_blank" rel="noopener">Get full access →</a>';
+    banner.style.display = "block";
+  }
+
+  function enterApp() {
+    document.getElementById("gate").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    updateBanner();
+  }
+
+  function leaveApp() {
+    clearSession();
+    document.getElementById("app").style.display = "none";
+    document.getElementById("gate").style.display = "block";
+  }
+
+  async function unlock() {
+    const code = document.getElementById("pw-input").value;
+    if (!code) return;
+    try {
+      const res = await fetch("/api/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showError(data.error || "Incorrect password. Please try again.");
+        return;
+      }
+      session = { mode: "paid", code };
+      saveSession();
+      enterApp();
+    } catch (err) {
+      showError("Network error. Please try again.");
     }
   }
 
-  // Stay unlocked within session
-  if (sessionStorage.getItem("sf_unlocked") === "1") {
-    document.getElementById("gate").style.display = "none";
-    document.getElementById("app").style.display = "block";
+  function startFree() {
+    const email = document.getElementById("email-input").value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      showError("Please enter a valid email address.");
+      return;
+    }
+    session = { mode: "free", email };
+    saveSession();
+    enterApp();
   }
+
+  // Stay signed in within this browser tab. The server checks everything again on every question.
+  try {
+    const saved = sessionStorage.getItem("sf_session");
+    if (saved) {
+      session = JSON.parse(saved);
+      enterApp();
+    }
+  } catch (e) {}
 
   function setExample(el) {
     document.getElementById("question").value = el.textContent;
   }
 
+  function renderAnswer(text) {
+    return esc(text)
+      .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/^## (.+)$/gm, '<h3 style="margin:20px 0 8px;color:#0070d2;">$1</h3>')
+      .replace(/^### (.+)$/gm, '<h4 style="margin:16px 0 6px;">$1</h4>')
+      .replace(/^- (.+)$/gm, '• $1')
+      .replace(/\n/g, '<br>');
+  }
+
   async function askCopilot() {
     const question = document.getElementById("question").value.trim();
     if (!question) return;
+    if (!session) { leaveApp(); return; }
 
     const btn = document.getElementById("btn");
     const loading = document.getElementById("loading");
@@ -355,28 +485,42 @@ Example: Write a Flow that automatically sends an email when a Case is closed wi
       const res = await fetch("/api/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({
+          question,
+          mode: session.mode,
+          email: session.email,
+          code: session.code,
+        }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
-      if (data.error) {
-        answerContent.textContent = "Error: " + data.error;
+      if (res.status === 401) {
+        leaveApp();
+        showError(data.error || "Please enter your password again.");
+        showTab("paid");
+      } else if (data.error) {
+        answerContent.textContent = data.error;
+        if (data.code === "free_limit_reached") {
+          updateBanner(0);
+          answerContent.appendChild(document.createTextNode(" Get unlimited access: "));
+          const link = document.createElement("a");
+          link.href = data.buyUrl || BUY_URL;
+          link.target = "_blank";
+          link.rel = "noopener";
+          link.textContent = "see the Copilot page →";
+          answerContent.appendChild(link);
+        }
+      } else if (!data.answer) {
+        answerContent.textContent = "Something went wrong. Please try again.";
       } else {
-        let html = data.answer
-          .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
-          .replace(/`([^`]+)`/g, '<code>$1</code>')
-          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-          .replace(/^## (.+)$/gm, '<h3 style="margin:20px 0 8px;color:#0070d2;">$1</h3>')
-          .replace(/^### (.+)$/gm, '<h4 style="margin:16px 0 6px;">$1</h4>')
-          .replace(/^- (.+)$/gm, '• $1')
-          .replace(/\n/g, '<br>');
-        answerContent.innerHTML = html;
+        answerContent.innerHTML = renderAnswer(data.answer);
+        if (typeof data.freeRemaining === "number") updateBanner(data.freeRemaining);
       }
 
       answerCard.classList.add("visible");
     } catch (err) {
-      answerContent.textContent = "Network error. Make sure the server is running.";
+      answerContent.textContent = "Network error. Please try again.";
       answerCard.classList.add("visible");
     }
 

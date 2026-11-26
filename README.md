@@ -56,6 +56,8 @@ http://localhost:3000
 \`\`\`
 salesforce-copilot/
 ├── server.js          # Express backend + Claude API
+├── lib/usage-store.js # Usage limits and leads
+├── test/              # Server tests (fake Claude client)
 ├── public/
 │   └── index.html     # Frontend UI
 ├── .env.example       # Template for environment variables
@@ -67,6 +69,14 @@ salesforce-copilot/
 
 - Never commit your `.env` file (already in `.gitignore`)
 - API keys are server-side only, never exposed to the browser
+
+## 🔐 Access and usage limits
+
+- **Free sample:** visitors enter an email and get 3 questions. Each email address is counted once, including Gmail dots and `+tag` variants.
+- **Paid access:** buyers type the password set in `PAID_ACCESS_CODE`. It is checked on the server, never stored in the page.
+- **Cost protection:** a per-network daily limit, a daily limit for free samples, and a global daily limit all apply, so a leaked password cannot run up the Anthropic bill. Defaults are in `.env.example`.
+- **Leads:** each new free-sample email is appended to `data/leads.jsonl` and printed to the server log as `LEAD`. On Railway, attach a volume and set `DATA_DIR` to its path if you want usage counts and leads to survive redeploys.
+- **Tests:** `npm test` runs the server tests with a fake Claude client (no API calls).
 
 ## 📄 License
 
