@@ -75,7 +75,7 @@ salesforce-copilot/
 - **Free sample:** visitors enter an email and get 3 questions. Each email address is counted once, including Gmail dots and `+tag` variants.
 - **Paid access:** buyers type the password set in `PAID_ACCESS_CODE`. It is checked on the server, never stored in the page.
 - **Cost protection:** a per-network daily limit, a daily limit for free samples, and a global daily limit all apply, so a leaked password cannot run up the Anthropic bill. Defaults are in `.env.example`.
-- **Leads:** each new free-sample email is appended to `data/leads.jsonl` and printed to the server log as `LEAD`. On Railway, attach a volume and set `DATA_DIR` to its path if you want usage counts and leads to survive redeploys.
+- **Leads:** each new free-sample email is appended to `data/leads.jsonl` and printed to the server log as `LEAD`. On Railway, attach a volume and set `DATA_DIR` to its path if you want usage counts and leads to survive redeploys. If `LEADS_WEBHOOK_URL` and `LEADS_WEBHOOK_SECRET` are set, each new lead is also posted to a Google Sheet through an Apps Script web app (best effort; a failure never blocks a question).
 - **Tests:** `npm test` runs the server tests with a fake Claude client (no API calls).
 
 ## 📄 License

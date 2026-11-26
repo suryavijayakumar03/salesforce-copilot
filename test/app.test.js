@@ -222,6 +222,25 @@ test("usage survives a restart and each lead is logged once", async () => {
   assert.equal(JSON.parse(leads[0]).email, "lead@x.co");
 });
 
+test("a new lead is sent once to the sheet webhook and a failing webhook does not break anything", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "copilot-hook-"));
+  const limits = { ...readConfig({}), freePerEmail: 3 };
+  const calls = [];
+  const okFetch = async (url, opts) => { calls.push({ url, body: JSON.parse(opts.body) }); return { ok: true }; };
+  const a = new UsageStore(dir, { leadsWebhookUrl: "https://example.test/hook", leadsWebhookSecret: "s3", fetchImpl: okFetch });
+  assert.equal(a.reserve({ kind: "free", email: "h@x.co", ip: "1.1.1.1", limits }).ok, true);
+  assert.equal(a.reserve({ kind: "free", email: "h@x.co", ip: "1.1.1.1", limits }).ok, true);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].body.email, "h@x.co");
+  assert.equal(calls[0].body.secret, "s3");
+
+  const dir2 = fs.mkdtempSync(path.join(os.tmpdir(), "copilot-hook2-"));
+  const badFetch = async () => { throw new Error("network down"); };
+  const b = new UsageStore(dir2, { leadsWebhookUrl: "https://example.test/hook", fetchImpl: badFetch });
+  assert.equal(b.reserve({ kind: "free", email: "z@x.co", ip: "2.2.2.2", limits }).ok, true);
+  await new Promise((r) => setTimeout(r, 20));
+});
+
 test("answers are returned as plain text for the page to escape", async () => {
   const t = await start();
   const html = await (await fetch(t.base + "/")).text();

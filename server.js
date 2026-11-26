@@ -47,6 +47,8 @@ function readConfig(env = process.env) {
     maxQuestionChars: intFrom(env, "MAX_QUESTION_CHARS", 2000),
     failedCodesPerIpPerDay: intFrom(env, "FAILED_CODES_PER_IP_PER_DAY", 15),
     dataDir: env.DATA_DIR || path.join(__dirname, "data"),
+    leadsWebhookUrl: env.LEADS_WEBHOOK_URL || "",
+    leadsWebhookSecret: env.LEADS_WEBHOOK_SECRET || "",
     buyUrl: env.BUY_URL || "https://suryaairevops.gumroad.com/l/sfcopilot",
   };
 }
@@ -75,7 +77,10 @@ function normalizeEmail(raw) {
 }
 
 function createApp({ client, config = readConfig(), store }) {
-  const usage = store || new UsageStore(config.dataDir);
+  const usage = store || new UsageStore(config.dataDir, {
+    leadsWebhookUrl: config.leadsWebhookUrl,
+    leadsWebhookSecret: config.leadsWebhookSecret,
+  });
   const app = express();
   app.set("trust proxy", 1); // Railway sits behind one proxy; req.ip is the real visitor
   app.use(express.json({ limit: "20kb" }));

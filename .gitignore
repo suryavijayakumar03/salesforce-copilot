@@ -4,3 +4,4 @@ node_modules/
 *.log
 data/
 *.bak
+docs/leads-sheet-script.gs
